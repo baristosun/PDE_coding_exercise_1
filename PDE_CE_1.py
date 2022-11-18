@@ -1,10 +1,12 @@
 #### RWTH Aachen University PDE lecture coding exercise 1 ###
 
 import numpy as np
+from numpy.linalg import norm
 from scipy.integrate import quad
 import matplotlib.pyplot as plt
 from scipy.sparse import spdiags, csc_matrix
 from scipy.sparse.linalg import spsolve
+import pandas as pd
 
 def grid(N, ansatz='linear'):
     # N: the number of elements
@@ -150,6 +152,38 @@ def FEM1DConstant(N, ansatz='linear', rhs_type='constant'):
     return G, u
     
 
+# Define the convergence behaivour between the exact solution and numerical solutions
+def convergenceBehaviour(ansatz, rhs_type):
+    # Define a data frame to hold the norm value for the error and the grid size
+    df_convergence = pd.DataFrame(columns=['Grid Size','Error'])
+    # Create a for loop to get the different solitions to the grid sizes
+    for i in range(2,25):
+        grid_size = 1/i
+        # Get the FEM Solution for the current grid size
+        fem_soln = FEM1DConstant(i, ansatz, rhs_type)
+        # Get the xk values
+        xk = fem_soln[0]
+        # Get the numerical solution
+        uh = fem_soln[1]
+        # Get the exact solution for the xk values
+        u = np.zeros(len(xk))
+        for j in range(len(xk)):
+            u[j] = solConstant(xk[j], rhs_type)
+        # Get the error array
+        error = u - uh
+        # Get the error norm
+        error_norm = (np.sum(np.power(error,2)))**0.5
+        # Add the values to the dataframe
+        df_convergence = df_convergence.append({'Grid Size':grid_size, 'Error':error_norm}, ignore_index=True)
+    # Plot the error graph
+    plt.plot(df_convergence['Grid Size'], df_convergence['Error'])
+    plt.xlabel('$h$')
+    plt.ylabel(r'$\left \| u-u_h \right \|_{L^2}$')
+    plt.grid()
+    plt.show()
+    print(df_convergence)
+    
+
 #Solution of the problem
 solution = FEM1DConstant(11,ansatz='quadratic', rhs_type='dirac')
 grid_vec = solution[0]
@@ -162,6 +196,7 @@ y_exact = np.zeros(len(x_exact))
 for i in range(len(x_exact)):
     y_exact[i] = solConstant(x_exact[i], 'dirac')
 
+"""
 #Plotting the numerical and exact solutions
 plt.plot(grid_vec, approx_sol, x_exact, y_exact)
 plt.legend(('Numerical Solution','Exact Solution'))
@@ -170,3 +205,5 @@ plt.ylabel("u(x)")
 plt.title("Exact and Numerical Solutions")
 plt.grid()
 plt.show()
+"""
+convergenceBehaviour('linear', 'dirac')
