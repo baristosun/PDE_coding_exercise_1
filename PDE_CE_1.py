@@ -76,47 +76,56 @@ def assembleMatrix(lattice, ansatz='linear'):
 
         for i in range(1,len(lattice)-1): 
             for j in range(len(lattice)):       
-                if (j==i-2) and (i%2 == 0):
-                    h = lattice[i]-lattice[i-1]
-                    A[i,j] = 1 / (6*h)
-
-        for i in range(1,len(lattice)-1): 
-            for j in range(len(lattice)):       
-                if (j==i+2) and (i%2 == 0):
+                if (j==i-2 or j==i+2) and (i%2 == 0):
                     h = lattice[i]-lattice[i-1]
                     A[i,j] = 1 / (6*h)
 
     return A
 
-def rhsConstant(lattice, ansatz='linear'):
+def rhsConstant(lattice, ansatz='linear', rhs_type='constant'):
     # lattice: node values
     # return: vector of right hand side values
     b = np.zeros(len(lattice)) #rhs matrice with zeros
     b[0] = 0 #BC
     b[len(lattice)-1] = 0 #BC
     h = lattice[2]-lattice[1]
+    # For f=1
+    if rhs_type == 'constant':
+        if (ansatz=='linear'):
+            for i in range(1,len(lattice)-1):
+                b[i] = h
     
-    if (ansatz=='linear'):
-        for i in range(1,len(lattice)-1):
-            b[i] = h
+        else: #Quadratic case
+            for i in range(1,len(lattice)-1):
+                if(i%2 == 1):
+                    b[i] = (4*h) / 3
+                if(i%2 == 0):
+                    b[i] = (2*h)/3
     
-    else: #Quadratic case
-        for i in range(1,len(lattice)-1):
-            if(i%2 == 1):
-                b[i] = (4*h) / 3
-            if(i%2 == 0):
-                b[i] = (2*h)/3
-
+    # For f = dirac(0.5)
+    else:
+        if ansatz == 'linear':
+            for i in range(1,len(lattice)-1):
+                if round(i*h,2) != 0.5:
+                    b[i] = 0
+                else:
+                    b[i] = 2
     return b
 
 
-def solConstant(x):
+def solConstant(x, rhs_type='contant'):
 # x: a real number (or a vector of real numbers), where the analytic solution is computed
-# return: a real number (or a vector of real numbers) of the analytic solution for f=1
-    X =  -0.5*(x-0.5)**2+1/8
+# return: a real number (or a vector of real numbers) of the analytic solution for f=1 or f = dirac(0.5)
+    if rhs_type == 'constant':
+        X =  -0.5*(x-0.5)**2+1/8
+    else:
+        if x <= 0.5:
+            X = x
+        else:
+            X = 1 - x
     return X
 
-def FEM1DConstant(N, ansatz='linear'):
+def FEM1DConstant(N, ansatz='linear', rhs_type='constant'):
     # N: number of elements
     # ansatz: choose between 'linear' or 'quadratic' ansatz functions
     # return: pair (node vector, solution vector)
@@ -127,14 +136,15 @@ def FEM1DConstant(N, ansatz='linear'):
         u = np.zeros(n_o_e)
         G = grid(N, ansatz='linear')
         A = assembleMatrix(G,'linear')
-        b = rhsConstant(G,'linear')
+        b = rhsConstant(G, ansatz, rhs_type)
         u = np.linalg.solve(A,b)
     else:
         n_o_e = 2*N + 1
         u = np.zeros(n_o_e)
         G = grid(N, ansatz='quadratic')
         A = assembleMatrix(G,'quadratic')
-        b = rhsConstant(G,'quadratic')
+        b = rhsConstant(G, ansatz, rhs_type)
+        print(A,b)
         u = np.linalg.solve(A,b) 
 
     
@@ -142,7 +152,7 @@ def FEM1DConstant(N, ansatz='linear'):
     
 
 #Solution of the problem
-solution = FEM1DConstant(6,ansatz='linearsdf')
+solution = FEM1DConstant(10,ansatz='quadratic', rhs_type='dirac')
 grid_vec = solution[0]
 approx_sol  = solution[1]
 
@@ -154,9 +164,10 @@ for i in range(len(x_exact)):
     y_exact[i] = solConstant(x_exact[i])
 
 #Plotting the numerical and exact solutions
-plt.plot(grid_vec, approx_sol,x_exact, y_exact)
+plt.plot(grid_vec, approx_sol, x_exact, y_exact)
 plt.legend(('Numerical Solution','Exact Solution'))
 plt.xlabel("x")
 plt.ylabel("u(x)")
 plt.title("Exact and Numerical Solutions")
+plt.grid()
 plt.show()
