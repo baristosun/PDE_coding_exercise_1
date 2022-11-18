@@ -104,7 +104,7 @@ def rhsConstant(lattice, ansatz='linear', rhs_type='constant'):
     
     # For f = dirac(0.5)
     else:
-        if ansatz == 'linear':
+        if ansatz == 'linear' or ansatz == 'quadratic':
             for i in range(1,len(lattice)-1):
                 if round(i*h,2) != 0.5:
                     b[i] = 0
@@ -144,7 +144,6 @@ def FEM1DConstant(N, ansatz='linear', rhs_type='constant'):
         G = grid(N, ansatz='quadratic')
         A = assembleMatrix(G,'quadratic')
         b = rhsConstant(G, ansatz, rhs_type)
-        print(A,b)
         u = np.linalg.solve(A,b) 
 
     
@@ -152,7 +151,7 @@ def FEM1DConstant(N, ansatz='linear', rhs_type='constant'):
     
 
 #Solution of the problem
-solution = FEM1DConstant(10,ansatz='quadratic', rhs_type='dirac')
+solution = FEM1DConstant(11,ansatz='quadratic', rhs_type='dirac')
 grid_vec = solution[0]
 approx_sol  = solution[1]
 
