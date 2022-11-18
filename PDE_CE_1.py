@@ -113,7 +113,7 @@ def rhsConstant(lattice, ansatz='linear', rhs_type='constant'):
     return b
 
 
-def solConstant(x, rhs_type='contant'):
+def solConstant(x, rhs_type='constant'):
 # x: a real number (or a vector of real numbers), where the analytic solution is computed
 # return: a real number (or a vector of real numbers) of the analytic solution for f=1 or f = dirac(0.5)
     if rhs_type == 'constant':
@@ -161,7 +161,7 @@ approx_sol  = solution[1]
 x_exact = np.linspace(0, 1, num=1000)
 y_exact = np.zeros(len(x_exact))
 for i in range(len(x_exact)):
-    y_exact[i] = solConstant(x_exact[i])
+    y_exact[i] = solConstant(x_exact[i], 'dirac')
 
 #Plotting the numerical and exact solutions
 plt.plot(grid_vec, approx_sol, x_exact, y_exact)
