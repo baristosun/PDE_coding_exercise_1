@@ -1,12 +1,16 @@
 #### RWTH Aachen University PDE lecture coding exercise 1 ###
 
 import numpy as np
-from numpy.linalg import norm
 from scipy.integrate import quad
 import matplotlib.pyplot as plt
 from scipy.sparse import spdiags, csc_matrix
 from scipy.sparse.linalg import spsolve
 import pandas as pd
+from scipy import interpolate
+
+# Define the basis function type as well as the right hand side equation type
+basis_function_type = 'quadratic'          # Options --> linear/quadratic
+rhs_equation_type = 'constant'          # Options --> constant/dirac
 
 def grid(N, ansatz='linear'):
     # N: the number of elements
@@ -104,7 +108,7 @@ def rhsConstant(lattice, ansatz='linear', rhs_type='constant'):
                 if(i%2 == 0):
                     b[i] = (2*h)/3
     
-    # For f = dirac(0.5)
+    # For f = 2*dirac(0.5)
     else:
         if ansatz == 'linear' or ansatz == 'quadratic':
             for i in range(1,len(lattice)-1):
@@ -151,13 +155,27 @@ def FEM1DConstant(N, ansatz='linear', rhs_type='constant'):
     
     return G, u
     
+# Define the method for interpolation of curve equation from approximate solution vector
+def interpolationFunction(x, xk, uk):
+    # Inputs: x - vector for the points at interpolation equation; xk - input vector of the approx. solution;
+    # uk - vector of the approx. solutions at points xk
+    # Using scipy's interpolate function
+    f_interpolate = interpolate.interp1d(xk,uk)
+    ui = f_interpolate(x)
+    # Return the vector with the interpoated values
+    return ui
 
 # Define the convergence behaivour between the exact solution and numerical solutions
-def convergenceBehaviour(ansatz, rhs_type):
+def convergenceBehaviour(x_input, ansatz, rhs_type):
     # Define a data frame to hold the norm value for the error and the grid size
     df_convergence = pd.DataFrame(columns=['Grid Size','Error'])
+    # Define the vector for true solution
+    u = np.zeros(len(x_input))
+    # Get the true solution vector
+    for j in range(len(x_input)):
+        u[j] = solConstant(x_input[j], rhs_type)
     # Create a for loop to get the different solitions to the grid sizes
-    for i in range(2,25):
+    for i in range(2,40):
         grid_size = 1/i
         # Get the FEM Solution for the current grid size
         fem_soln = FEM1DConstant(i, ansatz, rhs_type)
@@ -165,27 +183,26 @@ def convergenceBehaviour(ansatz, rhs_type):
         xk = fem_soln[0]
         # Get the numerical solution
         uh = fem_soln[1]
-        # Get the exact solution for the xk values
-        u = np.zeros(len(xk))
-        for j in range(len(xk)):
-            u[j] = solConstant(xk[j], rhs_type)
-        # Get the error array
-        error = u - uh
-        # Get the error norm
+        # Get the interpolated value from the interpolation function for the approximated solution
+        ui = interpolationFunction(x_input, xk, uh)
+        # Get the error values
+        error = u - ui
+        # Get the L2 error norm
         error_norm = (np.sum(np.power(error,2)))**0.5
-        # Add the values to the dataframe
+        # Add the error into the data frame
         df_convergence = df_convergence.append({'Grid Size':grid_size, 'Error':error_norm}, ignore_index=True)
     # Plot the error graph
     plt.plot(df_convergence['Grid Size'], df_convergence['Error'])
-    plt.xlabel('$h$')
-    plt.ylabel(r'$\left \| u-u_h \right \|_{L^2}$')
+    plt.xlabel('$log(h)$')
+    plt.ylabel(r'$log(\left \| u-u_h \right \|_{L^2})$')
+    plot_title = 'Loglog PLot - ' + ansatz.capitalize() + ' Basis, ' + rhs_type.capitalize() + ' RHS'
+    plt.title(plot_title)
     plt.grid()
     plt.show()
-    print(df_convergence)
     
 
 #Solution of the problem
-solution = FEM1DConstant(11,ansatz='quadratic', rhs_type='dirac')
+solution = FEM1DConstant(18,basis_function_type, rhs_equation_type)
 grid_vec = solution[0]
 approx_sol  = solution[1]
 
@@ -194,16 +211,17 @@ approx_sol  = solution[1]
 x_exact = np.linspace(0, 1, num=1000)
 y_exact = np.zeros(len(x_exact))
 for i in range(len(x_exact)):
-    y_exact[i] = solConstant(x_exact[i], 'dirac')
+    y_exact[i] = solConstant(x_exact[i], rhs_equation_type)
 
-"""
+
 #Plotting the numerical and exact solutions
 plt.plot(grid_vec, approx_sol, x_exact, y_exact)
 plt.legend(('Numerical Solution','Exact Solution'))
 plt.xlabel("x")
 plt.ylabel("u(x)")
-plt.title("Exact and Numerical Solutions")
+plot_title = 'Exact Vs. Numerical Solutions - ' + ansatz.capitalize() + ' Basis, ' + rhs_type.capitalize() + ' RHS'
+plt.title(plot_title)
 plt.grid()
 plt.show()
-"""
-convergenceBehaviour('linear', 'dirac')
+
+convergenceBehaviour(x_exact, basis_function_type, rhs_equation_type)
