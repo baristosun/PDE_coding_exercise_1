@@ -219,7 +219,7 @@ plt.plot(grid_vec, approx_sol, x_exact, y_exact)
 plt.legend(('Numerical Solution','Exact Solution'))
 plt.xlabel("x")
 plt.ylabel("u(x)")
-plot_title = 'Exact Vs. Numerical Solutions - ' + ansatz.capitalize() + ' Basis, ' + rhs_type.capitalize() + ' RHS'
+plot_title = 'Exact Vs. Numerical Solutions - ' + basis_function_type.capitalize() + ' Basis, ' + rhs_equation_type.capitalize() + ' RHS'
 plt.title(plot_title)
 plt.grid()
 plt.show()
